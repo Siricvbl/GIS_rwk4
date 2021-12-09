@@ -1,0 +1,77 @@
+---
+title: "rwk4"
+author: "Yuning Jiang"
+date: "12/9/2021"
+output: html_document
+---
+## laod library 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(here)
+library(raster)
+library(fs)
+library(tidyverse)
+library(rmapshaper)
+library(ggplot2)
+library(plotly)
+library(janitor)
+library(raster)
+library(ggplot2)
+library(sp)
+library(countrycode)
+library(tmap)
+```
+
+## Load data
+```{r load data, include=FALSE}
+shape <- st_read(here::here('data','World_Countries_(Generalized)','World_Countries__Generalized_.shp'))
+csv <- read_csv(here::here('data','Gender Inequality Index (GII).csv'), 
+                locale = locale(encoding = 'latin1'),
+                skip = 5, na='..')
+
+```
+
+## data manipulation
+
+```{r data manipulation, echo=FALSE}
+country <- csv %>% 
+  slice(1:189) %>% 
+  select(Country,`2010`,`2019`) %>% 
+  clean_names() %>% 
+  mutate(differ = x2010-x2019 ) %>% 
+  mutate(iso = countrycode(country, origin = 'country.name',destination = 'iso2c'))
+
+
+```
+
+
+```{r country join to shp}
+joined <- shape %>% 
+  clean_names() %>% 
+  left_join(., country,
+            by =c('aff_iso'= 'iso'))
+
+```
+
+## plotting data 
+
+
+
+```{r hist}
+hist(country$differ,
+     col='red',
+     main='Inequality Differene',
+     xlab='difference')
+
+```
+
+```{r plotting map}
+map <- st_simplify(joined, dTolerance = 2000)
+tmap_mode('plot')
+qtm(map, fill='differ')
+
+
+
+```
+
