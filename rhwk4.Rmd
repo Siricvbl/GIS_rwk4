@@ -74,4 +74,141 @@ qtm(map, fill='differ')
 
 
 ```
+```{r}
+# plot each map
+breaks = c(0,0.1,0.2,0.3,0.4,0.5)
+tm1 <- tm_shape(joined) + 
+  tm_polygons("x2010", 
+              breaks=breaks,
+              palette="PuBu")+
+  tm_legend(show=FALSE)+
+  tm_layout(frame=FALSE)+
+  tm_credits("(a)", position=c(0,0.9), size=1)
 
+tm2 <- tm_shape(joined) +
+  tm_polygons('x2019',
+              palette ='PuBu') +
+  tm_legend(show=FALSE)+
+  tm_layout(frame=FALSE)+
+  tm_credits('(b)', position=c(0,0.9),size=1)
+
+tm3 <- tm_shape(joined) +
+  tm_polygons('differ',
+              palette = 'PuBu')+
+  tm_legend(show=FALSE)+
+  tm_layout(frame=FALSE)+
+  tm_credits('(c)',position=c(0,0.9),size=1)
+
+legend <- tm_shape(joined)+
+  tm_polygons('differ',
+              palette='PuBu')+
+  tm_scale_bar(position = c(0.2,0.06), text.size = 1)+
+  tm_legend(legend.only=TRUE,
+            legend.position=c(0.2,0.25),asp=0.1)+
+  tm_credits('Gender Inequality Difference',
+             position=c(0,0))
+
+t=tmap_arrange(tm1, tm2, tm3,legend,ncol=2)
+t
+# tmap_save(t,'map.png')
+```
+
+
+
+```{r interactive map}
+tmap_mode('view')
+tm_shape(joined)+
+  tm_polygons('differ',breaks=breaks)
+
+
+
+```
+
+
+
+```{r leaflet}
+library(leaflet)
+library(leafpop)
+#remove geometry for popup 
+popup_differ <- joined %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(country.x, differ) %>% 
+  popupTable()
+
+popup_2010 <- joined %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(country.x, x2010) %>%
+  popupTable()
+
+popup_2019 <- joined %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(country.x, x2019) %>%
+  popupTable()
+
+
+
+pal1 <- joined %>% 
+  colorBin(palette = 'YlOrRd',domain = .$differ,bins = breaks)
+
+pal2 <- joined %>% 
+  colorBin(palette = 'YlOrRd',domain = .$x2010,bins = breaks)
+
+pal3 <- joined %>% 
+  colorBin(palette = 'YlOrRd',domain = .$x2019,bins = breaks)
+
+```
+
+```{r leaflet map}
+
+
+
+
+tmap_mode("view")
+
+
+
+map<- leaflet(joined) %>%
+  # add basemap options
+  addTiles(group = "OSM (default)") %>%
+  addProviderTiles(providers$Stamen.Toner, group = "Toner") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+  addProviderTiles(providers$CartoDB.Positron, group = "CartoDB")%>%
+  
+
+  
+  addPolygons(color='white',
+              weight = 2,
+              opacity=1,
+              dashArray = "3",
+              popup = popup_differ,
+              fillOpacity = 0.7,
+              group = 'differ',
+              fillColor = ~pal1(differ)
+              ) %>% 
+   addPolygons(color='white',
+              weight = 2,
+              opacity=1,
+              dashArray = "3",
+              popup = popup_2010,
+              fillOpacity = 0.7,
+              group = '2010',
+              fillColor = ~pal2(x2010)
+              ) %>% 
+   addPolygons(color='white',
+              weight = 2,
+              opacity=1,
+              dashArray = "3",
+              popup = popup_2019,
+              fillOpacity = 0.7,
+              group = '2019', 
+              fillColor = ~pal3(x2019)
+              ) %>% 
+  addLegend(pal = pal2, values = 'differ', group=c('differ','2010',"2019"), position = 'bottomleft',title = "Legend") %>% 
+  addLayersControl(baseGroups = "OSM (default)",
+                   overlayGroups = c("differ","2010","2019"),
+                   options=layersControlOptions(collapsed = FALSE))
+  
+map
+  
+
+```
